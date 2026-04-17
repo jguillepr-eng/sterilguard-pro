@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SterilGuard Pro - Gestión Corporativa</title>
+    <!-- Tailwind CSS para el diseño -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Chart.js para los gráficos -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+        .chart-container { position: relative; height: 300px; width: 100%; }
+        .custom-shadow { box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.05), 0 10px 10px -5px rgba(0, 0, 0, 0.02); }
+        .btn-delete:hover { color: #ef4444; background-color: #fef2f2; }
+    </style>
+</head>
+<body class="bg-[#F8FAFC] text-slate-900">
+
+    <!-- Modal de Confirmación -->
+    <div id="confirm-modal" class="hidden fixed inset-0 z-[110] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
+        <div class="bg-white p-8 rounded-[2rem] shadow-2xl max-w-sm w-full text-center space-y-6">
+            <div class="w-16 h-16 bg-red-50 text-red-500 rounded-full flex items-center justify-center mx-auto">
+                <i data-lucide="alert-triangle" class="w-8 h-8"></i>
+            </div>
+            <div>
+                <h4 class="text-xl font-black text-slate-800 tracking-tight">¿Borrar todo?</h4>
+                <p class="text-slate-500 text-sm mt-2">Esta acción eliminará todos los registros permanentemente de la memoria local.</p>
+            </div>
+            <div class="flex gap-3">
+                <button onclick="closeModal()" class="flex-1 py-4 bg-slate-100 rounded-2xl font-bold text-slate-600 hover:bg-slate-200 transition-all">Cancelar</button>
+                <button onclick="clearAllData()" class="flex-1 py-4 bg-red-600 text-white rounded-2xl font-bold hover:bg-red-700 transition-all">Borrar Todo</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pantalla de Login -->
+    <div id="login-screen" class="min-h-screen bg-[#0F172A] flex items-center justify-center p-6">
+        <div class="max-w-md w-full">
+            <div class="text-center mb-10">
+                <div class="w-20 h-20 bg-blue-600 rounded-[2.5rem] flex items-center justify-center mx-auto mb-4 shadow-2xl shadow-blue-500/20 rotate-12">
+                    <i data-lucide="shield-check" class="text-white w-10 h-10 -rotate-12"></i>
+                </div>
+                <h1 class="text-4xl font-black text-white tracking-tighter uppercase italic">Steril<span class="text-blue-500">Guard</span></h1>
+                <p class="text-slate-400 font-medium mt-2 text-sm uppercase tracking-widest">Portal Corporativo Privado</p>
+            </div>
+            
+            <div class="bg-white rounded-[2rem] p-10 shadow-2xl">
+                <form id="login-form" class="space-y-6">
+                    <div class="space-y-2">
+                        <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Clave de Acceso</label>
+                        <div class="relative">
+                            <i data-lucide="lock" class="absolute left-4 top-4 text-slate-300 w-5 h-5"></i>
+                            <input id="password-input" type="password" required class="w-full bg-slate-50 border-2 border-slate-100 p-4 pl-12 rounded-2xl focus:border-blue-500 focus:bg-white outline-none transition-all text-lg" placeholder="Contraseña">
+                        </div>
+                        <p id="login-error" class="text-red-500 text-xs font-bold text-center mt-2 hidden">Clave incorrecta</p>
+                    </div>
+                    <button type="submit" class="w-full bg-blue-600 text-white py-5 rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-blue-700 shadow-xl shadow-blue-200 transition-all active:scale-95">
+                        Iniciar Sesión
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Interfaz Principal -->
+    <div id="main-app" class="hidden min-h-screen flex flex-col">
+        <header class="bg-white border-b border-slate-200 sticky top-0 z-40">
+            <div class="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
+                <div class="flex items-center gap-4">
+                    <div class="w-10 h-10 bg-slate-900 rounded-xl flex items-center justify-center">
+                        <i data-lucide="database" class="text-white w-5 h-5"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-lg font-black tracking-tighter uppercase italic leading-none">SterilGuard <span class="text-blue-600 text-[10px] align-top">PRO</span></h2>
+                        <div class="flex items-center gap-2 mt-1">
+                            <span class="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></span>
+                            <span id="user-display" class="text-[9px] font-black text-slate-400 uppercase tracking-tighter">Terminal activa</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-4">
+                    <nav class="hidden md:flex bg-slate-100 p-1 rounded-xl gap-1">
+                        <button onclick="switchTab('bitacora')" id="tab-bitacora" class="tab-btn active flex items-center gap-2 px-5 py-2.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all">
+                            <i data-lucide="clipboard-list" class="w-4 h-4"></i> Bitácora
+                        </button>
+                        <button onclick="switchTab('analisis')" id="tab-analisis" class="tab-btn flex items-center gap-2 px-5 py-2.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all text-slate-400 hover:bg-white">
+                            <i data-lucide="trending-up" class="w-4 h-4"></i> Análisis
+                        </button>
+                    </nav>
+                    <button onclick="logout()" class="p-3 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all">
+                        <i data-lucide="log-out" class="w-5 h-5"></i>
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <main class="max-w-7xl mx-auto px-6 py-8 w-full flex-grow">
+            <div id="section-bitacora" class="space-y-6">
+                <!-- Formulario -->
+                <section class="bg-white p-8 rounded-[2rem] custom-shadow border border-slate-200">
+                    <div class="flex items-center justify-between mb-8">
+                        <h3 class="text-xl font-black flex items-center gap-3">
+                            <div class="p-2 bg-blue-50 text-blue-600 rounded-lg"><i data-lucide="plus" class="w-5 h-5"></i></div>
+                            Nuevo Registro de Turno
+                        </h3>
+                    </div>
+                    
+                    <form id="registro-form" class="grid grid-cols-1 md:grid-cols-4 gap-5">
+                        <div class="space-y-1">
+                            <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Fecha</label>
+                            <input type="date" name="fecha" required class="w-full bg-slate-50 border border-slate-200 p-3 rounded-xl outline-none focus:border-blue-500 text-sm font-semibold">
+                        </div>
+                        <div class="space-y-1">
+                            <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Turno</label>
+                            <select name="turno" class="w-full bg-slate-50 border border-slate-200 p-3 rounded-xl outline-none focus:border-blue-500 text-sm font-semibold">
+                                <option>Turno 1 (7-3)</option>
+                                <option>Turno 2 (3-11)</option>
+                                <option>Turno 3 (11-7)</option>
+                            </select>
+                        </div>
+                        <div class="space-y-1">
+                            <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Equipo</label>
+                            <input type="text" name="equipo" placeholder="ID Autoclave" required class="w-full bg-slate-50 border border-slate-200 p-3 rounded-xl outline-none focus:border-blue-500 text-sm font-semibold">
+                        </div>
+                        <div class="space-y-1">
+                            <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Estado</label>
+                            <select name="estado" class="w-full bg-slate-50 border border-slate-200 p-3 rounded-xl outline-none focus:border-blue-500 text-sm font-semibold">
+                                <option value="Operativo">Operativo</option>
+                                <option value="Falla">Falla</option>
+                            </select>
+                        </div>
+                        <div class="space-y-1">
+                            <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Operador</label>
+                            <input type="text" name="responsable" placeholder="Nombre" required class="w-full bg-slate-50 border border-slate-200 p-3 rounded-xl outline-none focus:border-blue-500 text-sm font-semibold">
+                        </div>
+                        <div class="space-y-1">
+                            <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Tiempo Paro (min)</label>
+                            <input type="number" name="tiempoParo" value="0" class="w-full bg-slate-50 border border-slate-200 p-3 rounded-xl outline-none focus:border-blue-500 text-sm font-semibold">
+                        </div>
+                        <div class="md:col-span-2 space-y-1">
+                            <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Acción / Observaciones</label>
+                            <input type="text" name="accion" placeholder="Descripción breve..." class="w-full bg-slate-50 border border-slate-200 p-3 rounded-xl outline-none focus:border-blue-500 text-sm font-semibold">
+                        </div>
+                        <div class="md:col-span-4 mt-2">
+                            <button type="submit" class="bg-slate-900 text-white px-10 py-4 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-blue-600 transition-all shadow-lg">
+                                Guardar en Bitácora
+                            </button>
+                        </div>
+                    </form>
+                </section>
+
+                <!-- Tabla -->
+                <div class="bg-white rounded-[2rem] custom-shadow border border-slate-200 overflow-hidden">
+                    <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/30">
+                        <h4 class="font-black text-xs uppercase tracking-widest text-slate-400">Historial de Operaciones</h4>
+                        <div class="text-[10px] font-bold text-blue-600 bg-blue-50 px-3 py-1 rounded-full" id="count-display">0 Registros</div>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-sm">
+                            <thead class="bg-slate-50 text-slate-400 font-bold text-[10px] uppercase tracking-widest">
+                                <tr>
+                                    <th class="px-6 py-4 text-left">Fecha/Turno</th>
+                                    <th class="px-6 py-4 text-left">Activo</th>
+                                    <th class="px-6 py-4 text-left">Estado</th>
+                                    <th class="px-6 py-4 text-left">Acción</th>
+                                    <th class="px-6 py-4 text-right">Borrar</th>
+                                </tr>
+                            </thead>
+                            <tbody id="table-body" class="divide-y divide-slate-100"></tbody>
+                        </table>
+                    </div>
+                    <div class="p-6 bg-slate-50/50 border-t border-slate-100 flex justify-end">
+                        <button onclick="openModal()" class="flex items-center gap-2 text-red-500 hover:text-red-700 text-[10px] font-black uppercase tracking-widest transition-all">
+                            <i data-lucide="trash-2" class="w-4 h-4"></i> Limpiar toda la base de datos
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sección Análisis -->
+            <div id="section-analisis" class="hidden space-y-8">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div class="bg-white p-6 rounded-3xl border border-slate-100 custom-shadow">
+                        <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Disponibilidad</p>
+                        <p class="text-2xl font-black text-slate-900 mt-1" id="stat-disp">0%</p>
+                    </div>
+                    <div class="bg-white p-6 rounded-3xl border border-slate-100 custom-shadow">
+                        <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Total Fallas</p>
+                        <p class="text-2xl font-black text-rose-600 mt-1" id="stat-fallas">0</p>
+                    </div>
+                    <div class="bg-white p-6 rounded-3xl border border-slate-100 custom-shadow">
+                        <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Minutos de Paro</p>
+                        <p class="text-2xl font-black text-orange-600 mt-1" id="stat-min">0m</p>
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    <div class="bg-white p-8 rounded-[2rem] border border-slate-100 custom-shadow">
+                        <h5 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-6 border-l-4 border-blue-600 pl-4">Tendencia de Paros</h5>
+                        <div class="chart-container"><canvas id="lineChart"></canvas></div>
+                    </div>
+                    <div class="bg-white p-8 rounded-[2rem] border border-slate-100 custom-shadow">
+                        <h5 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-6 border-l-4 border-rose-600 pl-4">Fallas por Turno</h5>
+                        <div class="chart-container"><canvas id="barChart"></canvas></div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Notificación -->
+    <div id="toast" class="fixed bottom-10 right-10 z-[100] transform translate-x-[150%] transition-transform duration-500">
+        <div class="bg-slate-900 text-white px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-3">
+            <i data-lucide="check-circle-2" class="text-emerald-400 w-5 h-5"></i>
+            <span id="toast-msg" class="text-xs font-black uppercase tracking-widest">Operación Exitosa</span>
+        </div>
+    </div>
+
+    <script>
+        let registros = JSON.parse(localStorage.getItem('steril_data')) || [];
+        const CLAVE_ADMIN = "admin2024";
+        const CLAVE_OPERADOR = "esteril2024";
+        let lineChart, barChart;
+
+        lucide.createIcons();
+
+        // --- Autenticación ---
+        document.getElementById('login-form').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const pass = document.getElementById('password-input').value;
+            let role = (pass === CLAVE_ADMIN) ? 'Administrador' : (pass === CLAVE_OPERADOR ? 'Operador' : '');
+
+            if (role) {
+                document.getElementById('login-screen').classList.add('hidden');
+                document.getElementById('main-app').classList.remove('hidden');
+                document.getElementById('user-display').innerText = `Rol: ${role}`;
+                renderTable();
+            } else {
+                const err = document.getElementById('login-error');
+                err.classList.remove('hidden');
+                setTimeout(() => err.classList.add('hidden'), 3000);
+            }
+        });
+
+        function logout() { location.reload(); }
+
+        // --- Navegación ---
+        function switchTab(tab) {
+            document.querySelectorAll('.tab-btn').forEach(b => {
+                b.classList.remove('active', 'bg-white', 'text-blue-600', 'shadow-sm');
+                b.classList.add('text-slate-400');
+            });
+            document.getElementById(`tab-${tab}`).classList.add('active', 'bg-white', 'text-blue-600', 'shadow-sm');
+            document.getElementById('section-bitacora').classList.toggle('hidden', tab !== 'bitacora');
+            document.getElementById('section-analisis').classList.toggle('hidden', tab !== 'analisis');
+            if (tab === 'analisis') updateCharts();
+        }
+
+        // --- Gestión de Datos ---
+        document.getElementById('registro-form').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            registros.unshift({
+                id: Date.now(),
+                fecha: formData.get('fecha'),
+                turno: formData.get('turno'),
+                equipo: formData.get('equipo'),
+                responsable: formData.get('responsable'),
+                estado: formData.get('estado'),
+                tiempoParo: parseInt(formData.get('tiempoParo') || 0),
+                accion: formData.get('accion')
+            });
+            saveAndRender("Registro guardado");
+            e.target.reset();
+        });
+
+        function saveAndRender(msg) {
+            localStorage.setItem('steril_data', JSON.stringify(registros));
+            renderTable();
+            if(msg) showToast(msg);
+        }
+
+        function deleteEntry(id) {
+            registros = registros.filter(r => r.id !== id);
+            saveAndRender("Registro eliminado");
+        }
+
+        function openModal() { document.getElementById('confirm-modal').classList.remove('hidden'); }
+        function closeModal() { document.getElementById('confirm-modal').classList.add('hidden'); }
+
+        function clearAllData() {
+            registros = [];
+            saveAndRender("Base de datos limpiada");
+            closeModal();
+        }
+
+        function renderTable() {
+            const body = document.getElementById('table-body');
+            body.innerHTML = '';
+            document.getElementById('count-display').innerText = `${registros.length} Registros`;
+            registros.forEach(r => {
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-slate-50/50 group transition-all";
+                tr.innerHTML = `
+                    <td class="px-6 py-4">
+                        <div class="font-bold text-slate-900">${r.fecha}</div>
+                        <div class="text-[10px] text-slate-400 uppercase font-medium">${r.turno}</div>
+                    </td>
+                    <td class="px-6 py-4">
+                        <div class="font-semibold">${r.equipo}</div>
+                        <div class="text-[10px] text-slate-400 italic">Op: ${r.responsable}</div>
+                    </td>
+                    <td class="px-6 py-4">
+                        <span class="px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-tighter ${r.estado === 'Operativo' ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'}">
+                            ${r.estado}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4 text-slate-500 max-w-[200px] truncate">${r.accion || '-'}</td>
+                    <td class="px-6 py-4 text-right">
+                        <button onclick="deleteEntry(${r.id})" class="p-2 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all">
+                            <i data-lucide="trash-2" class="w-4 h-4"></i>
+                        </button>
+                    </td>
+                `;
+                body.appendChild(tr);
+            });
+            lucide.createIcons();
+        }
+
+        function updateCharts() {
+            const statsFallas = registros.filter(r => r.estado === 'Falla').length;
+            const statsMin = registros.reduce((a, b) => a + (b.tiempoParo || 0), 0);
+            const disp = registros.length > 0 ? (((registros.length - statsFallas) / registros.length) * 100).toFixed(1) : 100;
+
+            document.getElementById('stat-fallas').innerText = statsFallas;
+            document.getElementById('stat-min').innerText = `${statsMin}m`;
+            document.getElementById('stat-disp').innerText = `${disp}%`;
+
+            const grouped = {};
+            registros.slice().reverse().forEach(r => {
+                if (!grouped[r.fecha]) grouped[r.fecha] = { paro: 0, fallas: 0 };
+                grouped[r.fecha].paro += r.tiempoParo;
+                if (r.estado === 'Falla') grouped[r.fecha].fallas++;
+            });
+
+            const labels = Object.keys(grouped).slice(-7);
+            const paroData = labels.map(l => grouped[l].paro);
+            const fallasData = labels.map(l => grouped[l].fallas);
+
+            if (lineChart) lineChart.destroy();
+            lineChart = new Chart(document.getElementById('lineChart'), {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{ label: 'Paro', data: paroData, borderColor: '#3B82F6', tension: 0.4, fill: true, backgroundColor: 'rgba(59, 130, 246, 0.05)' }]
+                },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+            });
+
+            if (barChart) barChart.destroy();
+            barChart = new Chart(document.getElementById('barChart'), {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{ label: 'Fallas', data: fallasData, backgroundColor: '#F43F5E', borderRadius: 8 }]
+                },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+            });
+        }
+
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            document.getElementById('toast-msg').innerText = msg;
+            toast.classList.remove('translate-x-[150%]');
+            setTimeout(() => toast.classList.add('translate-x-[150%]'), 3000);
+        }
+    </script>
+</body>
+</html>
