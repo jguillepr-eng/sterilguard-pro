@@ -76,7 +76,7 @@ const App = () => {
     const dataEquipos = Object.keys(porEquipo).map(k => ({ name: k, paradas: porEquipo[k] }))
       .sort((a, b) => b.paradas - a.paradas).slice(0, 5);
 
-    // Disponibilidad en Horas
+    // Disponibilidad en Horas (Basado en días registrados)
     const diasUnicos = new Set(records.map(r => r.fecha)).size || 1;
     const horasTotalesDisponibles = diasUnicos * 24; 
     const horasOperativas = Math.max(0, horasTotalesDisponibles - (totalParoMin / 60)).toFixed(2);
@@ -125,7 +125,7 @@ const App = () => {
       <main className="max-w-7xl mx-auto">
         {activeTab === 'dashboard' ? (
           <div className="space-y-6">
-            {/* KPI Cards */}
+            {/* Tarjetas KPI */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
                 <div className="flex justify-between items-start mb-2 text-red-600">
@@ -161,7 +161,7 @@ const App = () => {
               </div>
             </div>
 
-            {/* Charts Section */}
+            {/* Sección de Gráficos */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
                 <h3 className="text-sm font-bold mb-6 text-slate-600 uppercase flex items-center gap-2">
@@ -206,7 +206,7 @@ const App = () => {
               </div>
             </div>
 
-            {/* Records Table */}
+            {/* Tabla de Registros */}
             <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
               <div className="p-4 bg-slate-50 border-b border-slate-200 flex justify-between items-center">
                 <h3 className="font-bold text-slate-700 flex items-center gap-2">
@@ -232,7 +232,7 @@ const App = () => {
                           <div className="font-bold text-slate-800">{record.equipo}</div>
                           <div className="text-[10px] text-slate-400">{record.fecha}</div>
                         </td>
-                        <td className="p-4">
+                        <td className="p-4 text-center">
                           <div className="flex items-center justify-center gap-2">
                             <span className="text-[9px] px-1.5 py-0.5 bg-red-50 text-red-600 rounded border">Dañado</span>
                             <ArrowRight size={12} className="text-slate-300" />
@@ -242,15 +242,31 @@ const App = () => {
                           </div>
                         </td>
                         <td className="p-4 text-sm text-slate-600 italic">{record.falla}</td>
-                        <td className="p-4 text-xs text-slate-500 max-w-[200px] truncate">{record.observaciones}</td>
+                        <td className="p-4">
+                          <div className="flex items-start gap-2 max-w-[200px]">
+                            <MessageSquare size={14} className="text-slate-300 mt-1 flex-shrink-0" />
+                            <span className="text-xs text-slate-500 line-clamp-2">{record.observaciones}</span>
+                          </div>
+                        </td>
                         <td className="p-4 text-right font-mono font-bold text-blue-600">
                           {(record.tiempoParo / 60).toFixed(2)}h
                         </td>
                         <td className="p-4 text-center">
-                          <button onClick={() => deleteRecord(record.id)} className="p-2 text-slate-300 hover:text-red-500"><Trash2 size={16} /></button>
+                          <button 
+                            onClick={() => deleteRecord(record.id)} 
+                            className="p-2 text-slate-300 hover:text-red-500 transition-colors"
+                            title="Eliminar Registro"
+                          >
+                            <Trash2 size={16} />
+                          </button>
                         </td>
                       </tr>
                     ))}
+                    {records.length === 0 && (
+                      <tr>
+                        <td colSpan="6" className="p-8 text-center text-slate-400 italic">No hay registros almacenados.</td>
+                      </tr>
+                    )}
                   </tbody>
                 </table>
               </div>
@@ -268,30 +284,47 @@ const App = () => {
                   </div>
                   <div>
                     <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Equipo</label>
-                    <input type="text" name="equipo" value={formData.equipo} onChange={handleInputChange} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl" required />
+                    <input type="text" name="equipo" value={formData.equipo} onChange={handleInputChange} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl" placeholder="Nombre del equipo" required />
                   </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Tipo de Falla</label>
-                    <input type="text" name="falla" value={formData.falla} onChange={handleInputChange} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl" required />
+                    <input type="text" name="falla" value={formData.falla} onChange={handleInputChange} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl" placeholder="Ej: Error motor" required />
                   </div>
                   <div>
                     <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Tiempo Paro (MINUTOS)</label>
-                    <input type="number" name="tiempoParo" value={formData.tiempoParo} onChange={handleInputChange} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl shadow-inner" placeholder="Ejem: 90" required />
-                    <p className="text-[10px] text-slate-400 mt-1 italic">El sistema lo convertirá a horas automáticamente.</p>
+                    <input type="number" name="tiempoParo" value={formData.tiempoParo} onChange={handleInputChange} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl shadow-inner" placeholder="Ej: 90" required />
+                    <p className="text-[10px] text-slate-400 mt-1 italic">Ingresa minutos, el sistema los convertirá a horas.</p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Estado Entrada</label>
+                    <select name="estadoEntrada" value={formData.estadoEntrada} onChange={handleInputChange} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none">
+                      <option>Dañado</option>
+                      <option>Operativo</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Estado Salida</label>
+                    <select name="estadoSalida" value={formData.estadoSalida} onChange={handleInputChange} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none">
+                      <option>Operativo</option>
+                      <option>Dañado</option>
+                    </select>
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Observaciones</label>
-                  <textarea name="observaciones" rows="3" value={formData.observaciones} onChange={handleInputChange} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl resize-none"></textarea>
+                  <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Observaciones Técnicas</label>
+                  <textarea name="observaciones" rows="3" value={formData.observaciones} onChange={handleInputChange} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl resize-none" placeholder="Describe la solución o notas relevantes..."></textarea>
                 </div>
 
                 <div className="flex gap-3">
-                  <button type="button" onClick={() => setActiveTab('dashboard')} className="flex-1 py-3 font-bold border border-slate-200 rounded-xl">Cancelar</button>
-                  <button type="submit" className="flex-[2] bg-blue-600 text-white py-3 rounded-xl font-bold">Guardar y Ver Horas</button>
+                  <button type="button" onClick={() => setActiveTab('dashboard')} className="flex-1 py-3 font-bold border border-slate-200 rounded-xl hover:bg-slate-50 transition-colors">Cancelar</button>
+                  <button type="submit" className="flex-[2] bg-blue-600 text-white py-3 rounded-xl font-bold hover:bg-blue-700 shadow-lg shadow-blue-200 transition-all">Guardar Registro</button>
                 </div>
               </form>
             </div>
