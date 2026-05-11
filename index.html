@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SterilGuard Pro - Inteligencia Operativa</title>
+    <title>SterilGuard Pro - Inteligencia Operativa en la Nube</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -14,24 +14,20 @@
             --brand-primary: #2563eb;
             --brand-dark: #0f172a;
         }
-
         body { 
             font-family: 'Plus Jakarta Sans', sans-serif; 
             scroll-behavior: smooth;
         }
-
         .glass-card {
             background: rgba(255, 255, 255, 0.9);
             backdrop-filter: blur(10px);
             border: 1px solid rgba(226, 232, 240, 0.8);
         }
-
         .tab-active {
             background-color: white;
             color: var(--brand-primary);
             box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
         }
-
         .status-badge {
             padding: 4px 10px;
             border-radius: 10px;
@@ -42,12 +38,15 @@
             align-items: center;
             gap: 4px;
         }
-
         @keyframes fadeIn {
             from { opacity: 0; transform: translateY(10px); }
             to { opacity: 1; transform: translateY(0); }
         }
         .animate-fade-in { animation: fadeIn 0.4s ease-out forwards; }
+        
+        /* Ocultar scrollbar pero mantener funcionalidad */
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
     </style>
 </head>
 <body class="bg-[#F8FAFC] text-slate-900">
@@ -60,11 +59,11 @@
             </div>
             <div>
                 <h4 class="text-2xl font-extrabold text-slate-800 tracking-tight">Reiniciar Sistema</h4>
-                <p class="text-slate-500 text-sm mt-2 font-medium">¿Estás seguro? Esta acción borrará permanentemente todos los registros actuales.</p>
+                <p class="text-slate-500 text-sm mt-2 font-medium">¿Estás seguro? Esta acción borrará los registros de la nube para todos los usuarios.</p>
             </div>
             <div class="flex gap-3">
                 <button onclick="closeModal()" class="flex-1 py-4 bg-slate-100 rounded-2xl font-bold text-slate-600 hover:bg-slate-200 transition-all">Cancelar</button>
-                <button onclick="clearAllData()" class="flex-1 py-4 bg-rose-600 text-white rounded-2xl font-bold hover:bg-rose-700 transition-all">Borrar</button>
+                <button id="btn-confirm-delete" class="flex-1 py-4 bg-rose-600 text-white rounded-2xl font-bold hover:bg-rose-700 transition-all">Borrar</button>
             </div>
         </div>
     </div>
@@ -77,10 +76,10 @@
         <div class="max-w-md w-full relative z-10">
             <div class="text-center mb-10">
                 <div class="w-24 h-24 bg-gradient-to-tr from-blue-600 to-indigo-500 rounded-[2.5rem] flex items-center justify-center mx-auto mb-6 shadow-2xl shadow-blue-500/40 rotate-12">
-                    <i data-lucide="shield-check" class="text-white w-12 h-12 -rotate-12"></i>
+                    <i data-lucide="cloud-lightning" class="text-white w-12 h-12 -rotate-12"></i>
                 </div>
                 <h1 class="text-5xl font-black text-white tracking-tighter italic uppercase">Steril<span class="text-blue-500">Guard</span></h1>
-                <p class="text-slate-400 font-bold mt-3 text-xs uppercase tracking-[0.3em]">Operational Intelligence</p>
+                <p class="text-slate-400 font-bold mt-3 text-xs uppercase tracking-[0.3em]">Cloud Sync Intelligence</p>
             </div>
             
             <div class="bg-white/95 backdrop-blur-md rounded-[3rem] p-10 shadow-2xl border border-white/20">
@@ -93,10 +92,10 @@
                         </div>
                         <p id="login-error" class="text-rose-500 text-xs font-bold text-center mt-2 hidden">Acceso Denegado</p>
                     </div>
-                    <button type="submit" class="w-full bg-blue-600 text-white py-5 rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-blue-700 shadow-xl shadow-blue-200 transition-all active:scale-95 flex items-center justify-center gap-2">
+                    <button type="submit" id="btn-login" class="w-full bg-blue-600 text-white py-5 rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-blue-700 shadow-xl shadow-blue-200 transition-all active:scale-95 flex items-center justify-center gap-2">
                         Autenticar <i data-lucide="chevron-right" class="w-4 h-4"></i>
                     </button>
-                    <p class="text-[9px] text-center text-slate-400 font-bold uppercase tracking-widest">Utilice 'admin2024' para supervisión</p>
+                    <p class="text-[9px] text-center text-slate-400 font-bold uppercase tracking-widest">Utilice 'admin2024' para sincronizar</p>
                 </form>
             </div>
         </div>
@@ -104,20 +103,18 @@
 
     <!-- Interfaz Principal -->
     <div id="main-app" class="hidden min-h-screen flex flex-col">
-        <!-- Header -->
         <header class="bg-white/80 backdrop-blur-md border-b border-slate-200 sticky top-0 z-50">
             <div class="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
                 <div class="flex items-center gap-4">
-                    <div class="w-10 h-10 bg-slate-900 rounded-xl flex items-center justify-center">
+                    <div class="w-10 h-10 bg-slate-900 rounded-xl flex items-center justify-center relative">
                         <i data-lucide="activity" class="text-white w-5 h-5"></i>
+                        <div id="sync-indicator" class="absolute -top-1 -right-1 w-3 h-3 bg-emerald-500 border-2 border-white rounded-full"></div>
                     </div>
                     <div>
-                        <h2 class="text-lg font-black tracking-tighter uppercase italic leading-none">SterilGuard <span class="text-blue-600">PRO</span></h2>
-                        <span id="user-display" class="text-[9px] font-black text-slate-400 uppercase">Conectado</span>
+                        <h2 class="text-lg font-black tracking-tighter uppercase italic leading-none">SterilGuard <span class="text-blue-600">CLOUD</span></h2>
+                        <span id="user-display" class="text-[9px] font-black text-slate-400 uppercase">Conectado en tiempo real</span>
                     </div>
                 </div>
-
-                <!-- Nav -->
                 <nav class="flex bg-slate-100 p-1 rounded-xl gap-1">
                     <button onclick="switchTab('bitacora')" id="tab-bitacora" class="tab-btn tab-active flex items-center gap-2 px-5 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all">
                         <i data-lucide="clipboard-list" class="w-4 h-4"></i> <span class="hidden md:inline">Bitácora</span>
@@ -126,7 +123,6 @@
                         <i data-lucide="trending-up" class="w-4 h-4"></i> <span class="hidden md:inline">Métricas</span>
                     </button>
                 </nav>
-
                 <button onclick="logout()" class="p-2 text-slate-400 hover:text-rose-600 transition-all">
                     <i data-lucide="log-out" class="w-5 h-5"></i>
                 </button>
@@ -134,16 +130,14 @@
         </header>
 
         <main class="max-w-7xl mx-auto px-6 py-8 w-full flex-grow space-y-8">
-            
             <!-- SECCIÓN BITÁCORA -->
             <div id="section-bitacora" class="space-y-6 animate-fade-in">
-                <!-- Registro de Turno -->
                 <section class="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100">
                     <div class="flex items-center gap-3 mb-8">
                         <div class="w-10 h-10 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center">
                             <i data-lucide="plus" class="w-5 h-5"></i>
                         </div>
-                        <h3 class="text-xl font-black text-slate-800 tracking-tight">Reporte de Control y Fallas</h3>
+                        <h3 class="text-xl font-black text-slate-800 tracking-tight">Nuevo Registro Cloud</h3>
                     </div>
                     
                     <form id="registro-form" class="grid grid-cols-1 md:grid-cols-4 gap-6">
@@ -167,20 +161,19 @@
                             <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Operador</label>
                             <input type="text" name="responsable" placeholder="Técnico" required class="w-full bg-slate-50 border border-slate-200 p-3.5 rounded-xl outline-none focus:border-blue-500 font-semibold">
                         </div>
-
-                        <!-- Fila 2: Estados y Tiempos -->
+                        
                         <div class="space-y-1">
                             <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest text-emerald-600">Estado Entrada</label>
                             <select name="estadoEntrada" class="w-full bg-emerald-50 border border-emerald-100 p-3.5 rounded-xl outline-none focus:border-emerald-500 font-bold text-emerald-700">
-                                <option value="Operativo">✓ Operativo</option>
-                                <option value="Falla">⚠ En Falla</option>
+                                <option value="Operativo"> ✓  Operativo</option>
+                                <option value="Falla"> ⚠  En Falla</option>
                             </select>
                         </div>
                         <div class="space-y-1">
                             <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest text-blue-600">Estado Salida</label>
                             <select name="estadoSalida" class="w-full bg-blue-50 border border-blue-100 p-3.5 rounded-xl outline-none focus:border-blue-500 font-bold text-blue-700">
-                                <option value="Operativo">✓ Operativo</option>
-                                <option value="Falla">⚠ En Falla</option>
+                                <option value="Operativo"> ✓  Operativo</option>
+                                <option value="Falla"> ⚠  En Falla</option>
                             </select>
                         </div>
                         <div class="space-y-1">
@@ -199,30 +192,26 @@
                                 <option value="Otros">Otros</option>
                             </select>
                         </div>
-
-                        <!-- Fila 3: Detalle de Acción (Full Width) -->
                         <div class="md:col-span-3 space-y-1">
                             <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Acción Tomada / Observaciones</label>
-                            <input type="text" name="accionTomada" placeholder="Describe la solución o el motivo del reporte..." class="w-full bg-slate-50 border border-slate-200 p-3.5 rounded-xl outline-none focus:border-blue-500 font-medium">
+                            <input type="text" name="accionTomada" placeholder="Describe la solución..." class="w-full bg-slate-50 border border-slate-200 p-3.5 rounded-xl outline-none focus:border-blue-500 font-medium">
                         </div>
-
                         <div class="md:col-span-1 flex items-end">
-                            <button type="submit" class="w-full bg-slate-900 text-white p-3.5 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-blue-600 transition-all shadow-lg shadow-slate-200 active:scale-95">
-                                Registrar Acción
+                            <button type="submit" class="w-full bg-slate-900 text-white p-3.5 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-blue-600 transition-all shadow-lg active:scale-95">
+                                Subir a la Nube
                             </button>
                         </div>
                     </form>
                 </section>
 
-                <!-- Tabla de Historial -->
                 <div class="bg-white rounded-[2.5rem] shadow-sm border border-slate-100 overflow-hidden">
                     <div class="p-6 border-b border-slate-50 flex justify-between items-center">
-                        <h4 class="font-black text-xs uppercase tracking-widest text-slate-400">Seguimiento de Activos</h4>
+                        <h4 class="font-black text-xs uppercase tracking-widest text-slate-400">Seguimiento Global</h4>
                         <button onclick="exportToExcel()" class="text-[10px] font-black uppercase text-blue-600 hover:underline flex items-center gap-1">
-                            <i data-lucide="download" class="w-3 h-3"></i> Exportar Reporte
+                            <i data-lucide="download" class="w-3 h-3"></i> Exportar Todo
                         </button>
                     </div>
-                    <div class="overflow-x-auto">
+                    <div class="overflow-x-auto no-scrollbar">
                         <table class="w-full text-sm">
                             <thead class="bg-slate-50 text-[10px] font-black uppercase text-slate-400">
                                 <tr>
@@ -234,7 +223,9 @@
                                     <th class="px-6 py-4 text-center">Acción</th>
                                 </tr>
                             </thead>
-                            <tbody id="table-body" class="divide-y divide-slate-50"></tbody>
+                            <tbody id="table-body" class="divide-y divide-slate-50">
+                                <!-- Datos cargados desde Firestore -->
+                            </tbody>
                         </table>
                     </div>
                 </div>
@@ -242,12 +233,10 @@
 
             <!-- SECCIÓN ANÁLISIS -->
             <div id="section-analisis" class="hidden space-y-8 animate-fade-in">
-                
-                <!-- Selector de Mes -->
                 <div class="flex flex-col md:flex-row justify-between items-center gap-4 bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm">
                     <div>
-                        <h3 class="text-lg font-black text-slate-800 tracking-tight">Filtro de Inteligencia Temporal</h3>
-                        <p class="text-[10px] font-bold text-slate-400 uppercase">Seleccione el período para el análisis de disponibilidad</p>
+                        <h3 class="text-lg font-black text-slate-800 tracking-tight">Analítica Multi-Dispositivo</h3>
+                        <p class="text-[10px] font-bold text-slate-400 uppercase">Datos sincronizados globalmente</p>
                     </div>
                     <div class="flex items-center gap-3">
                         <div class="relative">
@@ -257,10 +246,9 @@
                     </div>
                 </div>
 
-                <!-- KPIs de Disponibilidad Mensual -->
                 <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
                     <div class="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm">
-                        <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Disponibilidad (Período)</p>
+                        <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Disponibilidad</p>
                         <p class="text-3xl font-black text-blue-600" id="stat-disp">0%</p>
                         <div class="w-full bg-slate-100 h-1.5 mt-3 rounded-full overflow-hidden">
                             <div id="progress-disp" class="bg-blue-600 h-full transition-all duration-1000" style="width: 0%"></div>
@@ -269,7 +257,7 @@
                     <div class="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm">
                         <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Tiempo Operativo</p>
                         <p class="text-3xl font-black text-emerald-600" id="stat-operativo">0h</p>
-                        <p class="text-[9px] text-slate-400 font-bold uppercase mt-1" id="label-operativo">Horas totales</p>
+                        <p class="text-[9px] text-slate-400 font-bold uppercase mt-1" id="label-operativo">Cargando...</p>
                     </div>
                     <div class="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm">
                         <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Tiempo de Paro</p>
@@ -279,24 +267,21 @@
                     <div class="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm">
                         <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Total Eventos</p>
                         <p class="text-3xl font-black text-slate-800" id="stat-total">0</p>
-                        <p class="text-[9px] text-slate-400 font-bold uppercase mt-1">Registros en el período</p>
+                        <p class="text-[9px] text-slate-400 font-bold uppercase mt-1">En la base de datos</p>
                     </div>
                 </div>
 
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                    <!-- Clasificación de Equipos con más Problemas -->
                     <div class="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm">
                         <h5 class="text-[10px] font-black text-slate-800 uppercase tracking-widest mb-6 flex items-center gap-2">
-                            <i data-lucide="alert-triangle" class="w-4 h-4 text-rose-500"></i> Ranking de Criticidad del Mes
+                            <i data-lucide="alert-triangle" class="w-4 h-4 text-rose-500"></i> Ranking de Criticidad Cloud
                         </h5>
                         <div id="ranking-container" class="space-y-4">
-                            <p class="text-xs text-slate-400 italic text-center">Sin datos en este período...</p>
+                            <p class="text-xs text-slate-400 italic text-center">Conectando con la base de datos...</p>
                         </div>
                     </div>
-                    
-                    <!-- Gráfico de Tendencia -->
                     <div class="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm">
-                        <h5 class="text-[10px] font-black text-slate-800 uppercase tracking-widest mb-6">Inactividad Diaria (Minutos)</h5>
+                        <h5 class="text-[10px] font-black text-slate-800 uppercase tracking-widest mb-6">Tendencia de Inactividad (Min)</h5>
                         <div style="height: 300px;"><canvas id="paroChart"></canvas></div>
                     </div>
                 </div>
@@ -305,47 +290,80 @@
 
         <footer class="p-8 text-center bg-white border-t border-slate-100">
             <button onclick="openModal()" class="text-[10px] font-black text-rose-400 uppercase tracking-[0.3em] hover:text-rose-600 transition-all">
-                Reiniciar Base de Datos Local
+                Reiniciar Base de Datos Cloud
             </button>
         </footer>
     </div>
 
-    <!-- Toast -->
+    <!-- Toast de Notificación -->
     <div id="toast" class="fixed bottom-6 right-6 z-[100] transform translate-x-[150%] transition-transform duration-500">
         <div class="bg-slate-900 text-white px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-3">
-            <div class="w-8 h-8 bg-emerald-500 text-white rounded-lg flex items-center justify-center">
+            <div id="toast-icon" class="w-8 h-8 bg-emerald-500 text-white rounded-lg flex items-center justify-center">
                 <i data-lucide="check" class="w-4 h-4"></i>
             </div>
             <p id="toast-msg" class="text-xs font-bold uppercase tracking-widest"></p>
         </div>
     </div>
 
-    <script>
-        // --- Estado y Config ---
-        let registros = JSON.parse(localStorage.getItem('steril_v3_analisis_db')) || [];
-        const CLAVE_ADMIN = "admin2024";
-        let paroChart;
+    <!-- Firebase SDK -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-app.js";
+        import { 
+            getFirestore, collection, addDoc, onSnapshot, 
+            query, deleteDoc, doc, getDocs, writeBatch 
+        } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-firestore.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-auth.js";
 
-        window.onload = () => {
+        // --- Configuración e Inicialización ---
+        const firebaseConfig = JSON.parse(__firebase_config);
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const auth = getAuth(app);
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'sterilguard-v3-default';
+        const CLAVE_ADMIN = "admin2024";
+        
+        let registros = [];
+        let paroChart = null;
+        let currentUser = null;
+
+        // --- Auth Logic ---
+        const initAuth = async () => {
+            try {
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    await signInWithCustomToken(auth, __initial_auth_token);
+                } else {
+                    await signInAnonymously(auth);
+                }
+            } catch (error) {
+                console.error("Auth Error:", error);
+            }
+        };
+
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                currentUser = user;
+                setupFirestoreListener();
+            }
+        });
+
+        initAuth();
+
+        // --- UI Logic ---
+        window.addEventListener('load', () => {
             lucide.createIcons();
             const now = new Date();
             document.getElementById('input-fecha').valueAsDate = now;
-            
-            // Set default month filter (YYYY-MM)
-            const currentMonth = now.toISOString().slice(0, 7);
-            document.getElementById('filter-month').value = currentMonth;
-        };
+            document.getElementById('filter-month').value = now.toISOString().slice(0, 7);
+        });
 
-        // --- Auth ---
         document.getElementById('login-form').addEventListener('submit', (e) => {
             e.preventDefault();
             const pass = document.getElementById('password-input').value;
             if (pass === CLAVE_ADMIN || pass === "esteril") {
                 document.getElementById('login-screen').classList.add('hidden');
                 document.getElementById('main-app').classList.remove('hidden');
-                document.getElementById('user-display').innerText = `MODO: ${pass === CLAVE_ADMIN ? 'SUPERVISOR' : 'TÉCNICO'}`;
-                renderAll();
-                showToast("Acceso Concedido");
+                document.getElementById('user-display').innerText = `ID: ${auth.currentUser?.uid.slice(0,8)}... | MODO: ${pass === CLAVE_ADMIN ? 'SUPERVISOR' : 'TÉCNICO'}`;
+                showToast("Sincronización Activa");
             } else {
                 const err = document.getElementById('login-error');
                 err.classList.remove('hidden');
@@ -353,31 +371,45 @@
             }
         });
 
-        function logout() { location.reload(); }
-
-        // --- Navegación ---
-        function switchTab(tab) {
-            document.querySelectorAll('.tab-btn').forEach(b => {
-                b.classList.remove('tab-active');
-                b.classList.add('text-slate-500');
+        // --- Firestore Operations ---
+        const collectionPath = ['artifacts', appId, 'public', 'data', 'registros'];
+        
+        function setupFirestoreListener() {
+            const q = query(collection(db, ...collectionPath));
+            
+            // Listener en tiempo real
+            onSnapshot(q, (snapshot) => {
+                registros = snapshot.docs.map(doc => ({
+                    id: doc.id,
+                    ...doc.data()
+                }));
+                // Ordenar por fecha descendente
+                registros.sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
+                
+                renderTable();
+                if (!document.getElementById('section-analisis').classList.contains('hidden')) {
+                    updateAnalytics();
+                }
+                
+                // Efecto visual de sincronización
+                const indicator = document.getElementById('sync-indicator');
+                indicator.classList.replace('bg-emerald-500', 'bg-blue-500');
+                setTimeout(() => indicator.classList.replace('bg-blue-500', 'bg-emerald-500'), 1000);
+            }, (error) => {
+                console.error("Snapshot error:", error);
+                showToast("Error de sincronización", "rose");
             });
-            document.getElementById(`tab-${tab}`).classList.add('tab-active');
-            document.getElementById(`tab-${tab}`).classList.remove('text-slate-500');
-
-            ['bitacora', 'analisis'].forEach(s => {
-                document.getElementById(`section-${s}`).classList.toggle('hidden', s !== tab);
-            });
-
-            if (tab === 'analisis') updateAnalytics();
-            lucide.createIcons();
         }
 
-        // --- Lógica de Negocio ---
-        document.getElementById('registro-form').addEventListener('submit', (e) => {
+        document.getElementById('registro-form').addEventListener('submit', async (e) => {
             e.preventDefault();
+            if (!currentUser) {
+                showToast("Error: No autenticado", "rose");
+                return;
+            }
+
             const fd = new FormData(e.target);
             const entry = {
-                id: Date.now(),
                 fecha: fd.get('fecha'),
                 turno: fd.get('turno'),
                 equipo: fd.get('equipo').toUpperCase(),
@@ -386,36 +418,46 @@
                 tiempoParo: parseInt(fd.get('tiempoParo') || 0),
                 responsable: fd.get('responsable'),
                 tipoFalla: fd.get('tipoFalla'),
-                accionTomada: fd.get('accionTomada') || "Sin observaciones adicionales"
+                accionTomada: fd.get('accionTomada') || "Sin observaciones adicionales",
+                timestamp: Date.now(),
+                userId: currentUser.uid
             };
-            registros.unshift(entry);
-            saveData();
-            renderTable();
-            showToast("Registro Exitoso");
-            e.target.reset();
-            document.getElementById('input-fecha').valueAsDate = new Date();
+
+            try {
+                await addDoc(collection(db, ...collectionPath), entry);
+                showToast("Subido a la Nube");
+                e.target.reset();
+                document.getElementById('input-fecha').valueAsDate = new Date();
+            } catch (err) {
+                showToast("Error al subir datos", "rose");
+            }
         });
 
-        function saveData() { localStorage.setItem('steril_v3_analisis_db', JSON.stringify(registros)); }
+        window.deleteEntry = async (id) => {
+            try {
+                await deleteDoc(doc(db, ...collectionPath, id));
+                showToast("Registro eliminado");
+            } catch (err) {
+                showToast("Error al eliminar", "rose");
+            }
+        };
 
-        function deleteEntry(id) {
-            registros = registros.filter(r => r.id !== id);
-            saveData();
-            renderTable();
-        }
+        window.clearAllData = async () => {
+            try {
+                const snapshot = await getDocs(collection(db, ...collectionPath));
+                const batch = writeBatch(db);
+                snapshot.docs.forEach((doc) => {
+                    batch.delete(doc.ref);
+                });
+                await batch.commit();
+                closeModal();
+                showToast("Nube Reiniciada");
+            } catch (err) {
+                showToast("Error en reinicio", "rose");
+            }
+        };
 
-        function clearAllData() {
-            registros = [];
-            saveData();
-            location.reload();
-        }
-
-        function openModal() { document.getElementById('confirm-modal').classList.remove('hidden'); }
-        function closeModal() { document.getElementById('confirm-modal').classList.add('hidden'); }
-
-        // --- Renderizado ---
-        function renderAll() { renderTable(); }
-
+        // --- Render Helpers ---
         function renderTable() {
             const body = document.getElementById('table-body');
             body.innerHTML = '';
@@ -424,9 +466,9 @@
                 const tr = document.createElement('tr');
                 tr.className = "hover:bg-slate-50 transition-all group";
                 
-                const badgeEntrada = `<span class="status-badge ${r.estadoEntrada === 'Operativo' ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'}">${r.estadoEntrada === 'Operativo' ? '✓' : '⚠'}</span>`;
-                const badgeSalida = `<span class="status-badge ${r.estadoSalida === 'Operativo' ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'}">${r.estadoSalida === 'Operativo' ? '✓' : '⚠'}</span>`;
-
+                const badgeEntrada = `<span class="status-badge ${r.estadoEntrada === 'Operativo' ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'}">${r.estadoEntrada === 'Operativo' ? ' ✓ ' : ' ⚠ '}</span>`;
+                const badgeSalida = `<span class="status-badge ${r.estadoSalida === 'Operativo' ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'}">${r.estadoSalida === 'Operativo' ? ' ✓ ' : ' ⚠ '}</span>`;
+                
                 tr.innerHTML = `
                     <td class="px-6 py-5">
                         <div class="font-bold text-slate-800 text-[13px]">${r.fecha}</div>
@@ -452,7 +494,7 @@
                         <div class="text-[9px] text-slate-400 font-bold">${(r.tiempoParo/60).toFixed(1)}H</div>
                     </td>
                     <td class="px-6 py-5 text-center">
-                        <button onclick="deleteEntry(${r.id})" class="text-slate-300 hover:text-rose-500 transition-colors opacity-0 group-hover:opacity-100">
+                        <button onclick="deleteEntry('${r.id}')" class="text-slate-300 hover:text-rose-500 transition-colors opacity-0 group-hover:opacity-100 p-2">
                             <i data-lucide="trash-2" class="w-4 h-4"></i>
                         </button>
                     </td>
@@ -462,27 +504,23 @@
             lucide.createIcons();
         }
 
-        // --- Analítica con Filtro por Mes ---
-        function updateAnalytics() {
-            const selectedMonth = document.getElementById('filter-month').value; // Formato YYYY-MM
+        window.updateAnalytics = () => {
+            const selectedMonth = document.getElementById('filter-month').value;
             if (!selectedMonth) return;
-
-            // Filtrar registros por el mes seleccionado
+            
             const filtered = registros.filter(r => r.fecha.startsWith(selectedMonth));
             
             const totalEvents = filtered.length;
             const totalParoMin = filtered.reduce((acc, curr) => acc + curr.tiempoParo, 0);
             const totalParoHrs = (totalParoMin / 60).toFixed(1);
             
-            // Calcular horas disponibles en el mes seleccionado
             const [year, month] = selectedMonth.split('-').map(Number);
             const daysInMonth = new Date(year, month, 0).getDate();
             const totalMonthHrs = daysInMonth * 24;
             
             const totalOperativoHrs = (totalMonthHrs - (totalParoMin / 60)).toFixed(1);
-            const dispPercent = totalMonthHrs > 0 ? ((totalOperativoHrs / totalMonthHrs) * 100).toFixed(1) : 100;
+            const dispPercent = totalMonthHrs > 0 ? Math.max(0, ((totalOperativoHrs / totalMonthHrs) * 100)).toFixed(1) : 100;
 
-            // Update UI
             document.getElementById('stat-total').innerText = totalEvents;
             document.getElementById('stat-paro').innerText = `${totalParoHrs}h`;
             document.getElementById('stat-operativo').innerText = `${totalOperativoHrs}h`;
@@ -490,7 +528,7 @@
             document.getElementById('stat-disp').innerText = `${dispPercent}%`;
             document.getElementById('progress-disp').style.width = `${dispPercent}%`;
 
-            // Ranking de Equipos (Filtrado)
+            // Ranking
             const rankingContainer = document.getElementById('ranking-container');
             const equipoStats = {};
             filtered.forEach(r => {
@@ -498,49 +536,41 @@
                 if (r.estadoEntrada === 'Falla' || r.estadoSalida === 'Falla') equipoStats[r.equipo].fallas++;
                 equipoStats[r.equipo].min += r.tiempoParo;
             });
-
+            
             const sortedEquipos = Object.entries(equipoStats)
                 .sort((a, b) => b[1].min - a[1].min)
                 .slice(0, 5);
 
             if (sortedEquipos.length > 0) {
                 rankingContainer.innerHTML = sortedEquipos.map(([eq, stat], idx) => `
-                    <div class="flex items-center justify-between p-4 bg-slate-50 rounded-2xl">
+                    <div class="flex items-center justify-between p-4 bg-slate-50 rounded-2xl animate-fade-in">
                         <div class="flex items-center gap-4">
                             <span class="w-6 h-6 rounded-full bg-slate-900 text-white text-[10px] flex items-center justify-center font-black">${idx + 1}</span>
                             <div>
                                 <p class="text-sm font-black text-slate-800">${eq}</p>
-                                <p class="text-[9px] text-slate-400 font-bold uppercase">${stat.fallas} Eventos en el mes</p>
+                                <p class="text-[9px] text-slate-400 font-bold uppercase">${stat.fallas} Fallas en el mes</p>
                             </div>
                         </div>
                         <div class="text-right">
                             <p class="text-sm font-black text-rose-600">${stat.min}m</p>
-                            <p class="text-[9px] text-slate-400 font-bold uppercase">Tiempo Parado</p>
+                            <p class="text-[9px] text-slate-400 font-bold uppercase">Paro Acumulado</p>
                         </div>
                     </div>
                 `).join('');
             } else {
-                rankingContainer.innerHTML = '<p class="text-xs text-slate-400 italic text-center py-10">Sin datos de fallas para este mes.</p>';
+                rankingContainer.innerHTML = '<p class="text-xs text-slate-400 italic text-center py-10">Sin datos críticos este mes.</p>';
             }
 
-            // Gráfico de Tendencia del Mes
+            // Chart
             const ctx = document.getElementById('paroChart').getContext('2d');
             const dailyData = {};
-            
-            // Inicializar todos los días del mes con 0
             for(let i=1; i<=daysInMonth; i++) {
                 const dayStr = `${selectedMonth}-${String(i).padStart(2, '0')}`;
                 dailyData[dayStr] = 0;
             }
-
-            // Llenar con datos reales
-            filtered.forEach(r => {
-                if (dailyData[r.fecha] !== undefined) {
-                    dailyData[r.fecha] += r.tiempoParo;
-                }
-            });
-
-            const labels = Object.keys(dailyData).map(d => d.split('-')[2]); // Solo el día
+            filtered.forEach(r => { if (dailyData[r.fecha] !== undefined) dailyData[r.fecha] += r.tiempoParo; });
+            
+            const labels = Object.keys(dailyData).map(d => d.split('-')[2]);
             const values = Object.values(dailyData);
 
             if (paroChart) paroChart.destroy();
@@ -549,14 +579,14 @@
                 data: {
                     labels: labels,
                     datasets: [{
-                        label: 'Minutos Parado',
+                        label: 'Inactividad',
                         data: values,
                         borderColor: '#2563eb',
                         backgroundColor: 'rgba(37, 99, 235, 0.05)',
                         fill: true,
                         tension: 0.4,
                         borderWidth: 2,
-                        pointRadius: 2,
+                        pointRadius: 3,
                         pointBackgroundColor: '#fff'
                     }]
                 },
@@ -564,23 +594,16 @@
                     responsive: true,
                     maintainAspectRatio: false,
                     scales: {
-                        y: { beginAtZero: true, grid: { display: false } },
+                        y: { beginAtZero: true, grid: { color: '#f1f5f9' } },
                         x: { grid: { display: false }, ticks: { font: { size: 9 } } }
                     },
                     plugins: { legend: { display: false } }
                 }
             });
             lucide.createIcons();
-        }
+        };
 
-        function showToast(msg) {
-            const t = document.getElementById('toast');
-            document.getElementById('toast-msg').innerText = msg;
-            t.classList.remove('translate-x-[150%]');
-            setTimeout(() => t.classList.add('translate-x-[150%]'), 3000);
-        }
-
-        function exportToExcel() {
+        window.exportToExcel = () => {
             let csv = "Fecha,Turno,Equipo,Operador,Estado Entrada,Estado Salida,Tipo Falla,Accion Tomada,Tiempo Paro(min)\n";
             registros.forEach(r => {
                 const accion = r.accionTomada.replace(/,/g, ".");
@@ -590,10 +613,42 @@
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.setAttribute('href', url);
-            a.setAttribute('download', `Reporte_Esterilizacion_${new Date().toISOString().split('T')[0]}.csv`);
+            a.setAttribute('download', `Cloud_Report_${new Date().toISOString().split('T')[0]}.csv`);
             a.click();
             showToast("Reporte Descargado");
-        }
+        };
+
+        // --- Global Actions ---
+        window.switchTab = (tab) => {
+            document.querySelectorAll('.tab-btn').forEach(b => {
+                b.classList.remove('tab-active');
+                b.classList.add('text-slate-500');
+            });
+            document.getElementById(`tab-${tab}`).classList.add('tab-active');
+            document.getElementById(`tab-${tab}`).classList.remove('text-slate-500');
+            ['bitacora', 'analisis'].forEach(s => {
+                document.getElementById(`section-${s}`).classList.toggle('hidden', s !== tab);
+            });
+            if (tab === 'analisis') updateAnalytics();
+            lucide.createIcons();
+        };
+
+        window.showToast = (msg, type = "emerald") => {
+            const t = document.getElementById('toast');
+            const icon = document.getElementById('toast-icon');
+            document.getElementById('toast-msg').innerText = msg;
+            
+            icon.className = `w-8 h-8 rounded-lg flex items-center justify-center text-white bg-${type}-500`;
+            
+            t.classList.remove('translate-x-[150%]');
+            setTimeout(() => t.classList.add('translate-x-[150%]'), 3000);
+        };
+
+        window.logout = () => location.reload();
+        window.openModal = () => document.getElementById('confirm-modal').classList.remove('hidden');
+        window.closeModal = () => document.getElementById('confirm-modal').classList.add('hidden');
+        document.getElementById('btn-confirm-delete').onclick = window.clearAllData;
+
     </script>
 </body>
 </html>
