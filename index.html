@@ -242,10 +242,25 @@
 
             <!-- SECCIÓN ANÁLISIS -->
             <div id="section-analisis" class="hidden space-y-8 animate-fade-in">
+                
+                <!-- Selector de Mes -->
+                <div class="flex flex-col md:flex-row justify-between items-center gap-4 bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm">
+                    <div>
+                        <h3 class="text-lg font-black text-slate-800 tracking-tight">Filtro de Inteligencia Temporal</h3>
+                        <p class="text-[10px] font-bold text-slate-400 uppercase">Seleccione el período para el análisis de disponibilidad</p>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <div class="relative">
+                            <i data-lucide="calendar" class="absolute left-3 top-2.5 text-blue-500 w-4 h-4"></i>
+                            <input type="month" id="filter-month" onchange="updateAnalytics()" class="pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-500 font-bold text-slate-700">
+                        </div>
+                    </div>
+                </div>
+
                 <!-- KPIs de Disponibilidad Mensual -->
                 <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
                     <div class="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm">
-                        <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Disponibilidad (Mes)</p>
+                        <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Disponibilidad (Período)</p>
                         <p class="text-3xl font-black text-blue-600" id="stat-disp">0%</p>
                         <div class="w-full bg-slate-100 h-1.5 mt-3 rounded-full overflow-hidden">
                             <div id="progress-disp" class="bg-blue-600 h-full transition-all duration-1000" style="width: 0%"></div>
@@ -254,7 +269,7 @@
                     <div class="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm">
                         <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Tiempo Operativo</p>
                         <p class="text-3xl font-black text-emerald-600" id="stat-operativo">0h</p>
-                        <p class="text-[9px] text-slate-400 font-bold uppercase mt-1">Horas totales</p>
+                        <p class="text-[9px] text-slate-400 font-bold uppercase mt-1" id="label-operativo">Horas totales</p>
                     </div>
                     <div class="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm">
                         <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Tiempo de Paro</p>
@@ -264,7 +279,7 @@
                     <div class="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm">
                         <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Total Eventos</p>
                         <p class="text-3xl font-black text-slate-800" id="stat-total">0</p>
-                        <p class="text-[9px] text-slate-400 font-bold uppercase mt-1">Registros cargados</p>
+                        <p class="text-[9px] text-slate-400 font-bold uppercase mt-1">Registros en el período</p>
                     </div>
                 </div>
 
@@ -272,16 +287,16 @@
                     <!-- Clasificación de Equipos con más Problemas -->
                     <div class="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm">
                         <h5 class="text-[10px] font-black text-slate-800 uppercase tracking-widest mb-6 flex items-center gap-2">
-                            <i data-lucide="alert-triangle" class="w-4 h-4 text-rose-500"></i> Ranking de Criticidad por Equipo
+                            <i data-lucide="alert-triangle" class="w-4 h-4 text-rose-500"></i> Ranking de Criticidad del Mes
                         </h5>
                         <div id="ranking-container" class="space-y-4">
-                            <p class="text-xs text-slate-400 italic text-center">No hay suficientes datos para generar ranking...</p>
+                            <p class="text-xs text-slate-400 italic text-center">Sin datos en este período...</p>
                         </div>
                     </div>
                     
                     <!-- Gráfico de Tendencia -->
                     <div class="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm">
-                        <h5 class="text-[10px] font-black text-slate-800 uppercase tracking-widest mb-6">Tendencia Mensual de Inactividad</h5>
+                        <h5 class="text-[10px] font-black text-slate-800 uppercase tracking-widest mb-6">Inactividad Diaria (Minutos)</h5>
                         <div style="height: 300px;"><canvas id="paroChart"></canvas></div>
                     </div>
                 </div>
@@ -313,7 +328,12 @@
 
         window.onload = () => {
             lucide.createIcons();
-            document.getElementById('input-fecha').valueAsDate = new Date();
+            const now = new Date();
+            document.getElementById('input-fecha').valueAsDate = now;
+            
+            // Set default month filter (YYYY-MM)
+            const currentMonth = now.toISOString().slice(0, 7);
+            document.getElementById('filter-month').value = currentMonth;
         };
 
         // --- Auth ---
@@ -404,7 +424,6 @@
                 const tr = document.createElement('tr');
                 tr.className = "hover:bg-slate-50 transition-all group";
                 
-                // Formatear estados
                 const badgeEntrada = `<span class="status-badge ${r.estadoEntrada === 'Operativo' ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'}">${r.estadoEntrada === 'Operativo' ? '✓' : '⚠'}</span>`;
                 const badgeSalida = `<span class="status-badge ${r.estadoSalida === 'Operativo' ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'}">${r.estadoSalida === 'Operativo' ? '✓' : '⚠'}</span>`;
 
@@ -443,27 +462,38 @@
             lucide.createIcons();
         }
 
-        // --- Analítica ---
+        // --- Analítica con Filtro por Mes ---
         function updateAnalytics() {
-            const totalEvents = registros.length;
-            const totalParoMin = registros.reduce((acc, curr) => acc + curr.tiempoParo, 0);
+            const selectedMonth = document.getElementById('filter-month').value; // Formato YYYY-MM
+            if (!selectedMonth) return;
+
+            // Filtrar registros por el mes seleccionado
+            const filtered = registros.filter(r => r.fecha.startsWith(selectedMonth));
+            
+            const totalEvents = filtered.length;
+            const totalParoMin = filtered.reduce((acc, curr) => acc + curr.tiempoParo, 0);
             const totalParoHrs = (totalParoMin / 60).toFixed(1);
             
-            const uniqueDays = new Set(registros.map(r => r.fecha)).size || 1;
-            const totalAvailableHrs = uniqueDays * 24; 
-            const totalOperativoHrs = (totalAvailableHrs - (totalParoMin / 60)).toFixed(1);
-            const dispPercent = totalAvailableHrs > 0 ? ((totalOperativoHrs / totalAvailableHrs) * 100).toFixed(1) : 100;
+            // Calcular horas disponibles en el mes seleccionado
+            const [year, month] = selectedMonth.split('-').map(Number);
+            const daysInMonth = new Date(year, month, 0).getDate();
+            const totalMonthHrs = daysInMonth * 24;
+            
+            const totalOperativoHrs = (totalMonthHrs - (totalParoMin / 60)).toFixed(1);
+            const dispPercent = totalMonthHrs > 0 ? ((totalOperativoHrs / totalMonthHrs) * 100).toFixed(1) : 100;
 
+            // Update UI
             document.getElementById('stat-total').innerText = totalEvents;
             document.getElementById('stat-paro').innerText = `${totalParoHrs}h`;
             document.getElementById('stat-operativo').innerText = `${totalOperativoHrs}h`;
+            document.getElementById('label-operativo').innerText = `De ${totalMonthHrs}h totales`;
             document.getElementById('stat-disp').innerText = `${dispPercent}%`;
             document.getElementById('progress-disp').style.width = `${dispPercent}%`;
 
-            // Ranking de Equipos
+            // Ranking de Equipos (Filtrado)
             const rankingContainer = document.getElementById('ranking-container');
             const equipoStats = {};
-            registros.forEach(r => {
+            filtered.forEach(r => {
                 if (!equipoStats[r.equipo]) equipoStats[r.equipo] = { fallas: 0, min: 0 };
                 if (r.estadoEntrada === 'Falla' || r.estadoSalida === 'Falla') equipoStats[r.equipo].fallas++;
                 equipoStats[r.equipo].min += r.tiempoParo;
@@ -480,7 +510,7 @@
                             <span class="w-6 h-6 rounded-full bg-slate-900 text-white text-[10px] flex items-center justify-center font-black">${idx + 1}</span>
                             <div>
                                 <p class="text-sm font-black text-slate-800">${eq}</p>
-                                <p class="text-[9px] text-slate-400 font-bold uppercase">${stat.fallas} Eventos registrados</p>
+                                <p class="text-[9px] text-slate-400 font-bold uppercase">${stat.fallas} Eventos en el mes</p>
                             </div>
                         </div>
                         <div class="text-right">
@@ -489,18 +519,29 @@
                         </div>
                     </div>
                 `).join('');
+            } else {
+                rankingContainer.innerHTML = '<p class="text-xs text-slate-400 italic text-center py-10">Sin datos de fallas para este mes.</p>';
             }
 
-            // Gráfico
+            // Gráfico de Tendencia del Mes
             const ctx = document.getElementById('paroChart').getContext('2d');
             const dailyData = {};
-            registros.slice().reverse().forEach(r => {
-                if (!dailyData[r.fecha]) dailyData[r.fecha] = 0;
-                dailyData[r.fecha] += r.tiempoParo;
+            
+            // Inicializar todos los días del mes con 0
+            for(let i=1; i<=daysInMonth; i++) {
+                const dayStr = `${selectedMonth}-${String(i).padStart(2, '0')}`;
+                dailyData[dayStr] = 0;
+            }
+
+            // Llenar con datos reales
+            filtered.forEach(r => {
+                if (dailyData[r.fecha] !== undefined) {
+                    dailyData[r.fecha] += r.tiempoParo;
+                }
             });
 
-            const labels = Object.keys(dailyData).slice(-7);
-            const values = labels.map(l => dailyData[l]);
+            const labels = Object.keys(dailyData).map(d => d.split('-')[2]); // Solo el día
+            const values = Object.values(dailyData);
 
             if (paroChart) paroChart.destroy();
             paroChart = new Chart(ctx, {
@@ -514,16 +555,22 @@
                         backgroundColor: 'rgba(37, 99, 235, 0.05)',
                         fill: true,
                         tension: 0.4,
-                        borderWidth: 3,
+                        borderWidth: 2,
+                        pointRadius: 2,
                         pointBackgroundColor: '#fff'
                     }]
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
+                    scales: {
+                        y: { beginAtZero: true, grid: { display: false } },
+                        x: { grid: { display: false }, ticks: { font: { size: 9 } } }
+                    },
                     plugins: { legend: { display: false } }
                 }
             });
+            lucide.createIcons();
         }
 
         function showToast(msg) {
@@ -536,7 +583,6 @@
         function exportToExcel() {
             let csv = "Fecha,Turno,Equipo,Operador,Estado Entrada,Estado Salida,Tipo Falla,Accion Tomada,Tiempo Paro(min)\n";
             registros.forEach(r => {
-                // Escapar comas en los textos
                 const accion = r.accionTomada.replace(/,/g, ".");
                 csv += `${r.fecha},${r.turno},${r.equipo},${r.responsable},${r.estadoEntrada},${r.estadoSalida},${r.tipoFalla},${accion},${r.tiempoParo}\n`;
             });
@@ -544,7 +590,7 @@
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.setAttribute('href', url);
-            a.setAttribute('download', `Reporte_Mantenimiento_${new Date().toISOString().split('T')[0]}.csv`);
+            a.setAttribute('download', `Reporte_Esterilizacion_${new Date().toISOString().split('T')[0]}.csv`);
             a.click();
             showToast("Reporte Descargado");
         }
